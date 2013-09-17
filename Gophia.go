@@ -31,30 +31,38 @@ type Access C.uint32_t
 // The function must return 0 if the keys are equal, -1 if
 // the first key parameter is lower, and 1 if the second key
 // parameter is lower.
-// 
+//
 // See Environment.Cmp()
 type Comparator func(a []byte, b []byte) int
 
 const (
+	ComparesEqual       int = 0
+	ComparesLessThan        = -1
+	ComparesGreaterThan     = 1
+)
+
+const (
 	ReadWrite Access = C.SPO_RDWR
-	ReadOnly = C.SPO_RDONLY
-	Create = C.SPO_CREAT
+	ReadOnly         = C.SPO_RDONLY
+	Create           = C.SPO_CREAT
 )
 
 type Order C.uint32_t
+
 const (
-	GreaterThan Order = C.SPGT
-	GT = GreaterThan
-	GreaterThanEqual = C.SPGTE
-	GTE = GreaterThanEqual
-	LessThan = C.SPLT
-	LT = LessThan
-	LessThanEqual = C.SPLTE
-	LTE = LessThanEqual
+	GreaterThan      Order = C.SPGT
+	GT                     = GreaterThan
+	GreaterThanEqual       = C.SPGTE
+	GTE                    = GreaterThanEqual
+	LessThan               = C.SPLT
+	LT                     = LessThan
+	LessThanEqual          = C.SPLTE
+	LTE                    = LessThanEqual
 )
 
 // ErrNotFound indicates that the key does not exist in the database.
 var ErrNotFound = errors.New("Key not found")
+
 // EnnUnimplemented indicates a method that isn't yet available.
 var ErrUnimplemented = errors.New("Not yet implemented")
 
@@ -66,6 +74,7 @@ type Environment struct {
 // Database is used for accessing a database.
 type Database struct {
 	unsafe.Pointer
+	env *Environment
 }
 
 // Cursor iterates over key-values in a database.
@@ -78,7 +87,7 @@ type Cursor struct {
 func NewEnvironment() (*Environment, error) {
 	env := &Environment{}
 	env.Pointer = C.sp_env()
-	if nil==env {
+	if nil == env {
 		return nil, errors.New("sp_env failed")
 	}
 	return env, nil
@@ -88,20 +97,20 @@ func NewEnvironment() (*Environment, error) {
 func (env *Environment) Dir(access Access, directory string) error {
 	cdir := C.CString(directory)
 	defer C.free(unsafe.Pointer(cdir))
-	if 0!= C.sp_ctl_dir(env.Pointer, C.uint32_t(access), cdir) {
+	if 0 != C.sp_ctl_dir(env.Pointer, C.uint32_t(access), cdir) {
 		return env.Error()
 	}
 	return nil
 }
 
-// Cmp sets the database comparator function to use for 
+// Cmp sets the database comparator function to use for
 // ordering keys.
 //
 // The function must return 0 if the keys are equal, -1 if
 // the first key parameter is lower, and 1 if the second key
 // parameter is lower.
 func (env *Environment) Cmp(cmp Comparator) error {
-	if 0!=C.sp_ctl_cmp(env.Pointer, unsafe.Pointer(&cmp)) {
+	if 0 != C.sp_ctl_cmp(env.Pointer, unsafe.Pointer(&cmp)) {
 		return env.Error()
 	}
 	return nil
@@ -110,7 +119,7 @@ func (env *Environment) Cmp(cmp Comparator) error {
 // Page sets the max key count in a single page for the database.
 // This option can be tweaked for performance.
 func (env *Environment) Page(count int) error {
-	if 0!=C.sp_ctl_page(env.Pointer, C.uint32_t(count)) {
+	if 0 != C.sp_ctl_page(env.Pointer, C.uint32_t(count)) {
 		return env.Error()
 	}
 	return nil
@@ -127,7 +136,7 @@ func boolToCInt(b bool) C.int {
 
 // GC turns the garbage collector on or off.
 func (env *Environment) GC(enabled bool) error {
-	if 0!=C.sp_ctl_gc(env.Pointer, boolToCInt(enabled)) {
+	if 0 != C.sp_ctl_gc(env.Pointer, boolToCInt(enabled)) {
 		return env.Error()
 	}
 	return nil
@@ -141,7 +150,7 @@ func (env *Environment) GC(enabled bool) error {
 //
 // This option can be tweaked for performance.
 func (env *Environment) GCF(factor float64) error {
-	if 0!=C.sp_ctl_gcf(env.Pointer, C.double(factor)) {
+	if 0 != C.sp_ctl_gcf(env.Pointer, C.double(factor)) {
 		return env.Error()
 	}
 	return nil
@@ -150,9 +159,9 @@ func (env *Environment) GCF(factor float64) error {
 // Grow sets the initial new size and resize factor for new database files.
 // The values are used while the database extends during a merge.
 //
-// This option can be tweaked for performance. 
+// This option can be tweaked for performance.
 func (env *Environment) Grow(newsize uint32, newFactor float64) error {
-	if 0!=C.sp_ctl_grow(env.Pointer, C.uint32_t(newsize), C.double(newFactor)) {
+	if 0 != C.sp_ctl_grow(env.Pointer, C.uint32_t(newsize), C.double(newFactor)) {
 		return env.Error()
 	}
 	return nil
@@ -160,7 +169,7 @@ func (env *Environment) Grow(newsize uint32, newFactor float64) error {
 
 // Merge sets whether to launch a merger thread during Open().
 func (env *Environment) Merge(merge bool) error {
-	if 0!=C.sp_ctl_merge(env.Pointer, boolToCInt(merge)) {
+	if 0 != C.sp_ctl_merge(env.Pointer, boolToCInt(merge)) {
 		return env.Error()
 	}
 	return nil
@@ -174,14 +183,14 @@ func (env *Environment) Merge(merge bool) error {
 //
 // This option can be tweaked for performance.
 func (env *Environment) MergeWM(watermark uint32) error {
-	if 0!=C.sp_ctl_mergewm(env.Pointer, C.uint32_t(watermark)) {
+	if 0 != C.sp_ctl_mergewm(env.Pointer, C.uint32_t(watermark)) {
 		return env.Error()
 	}
 	return nil
 }
 
 // Error returns any error on the Environment. It should not be
-// necessary to call this method, since the Go methods all return 
+// necessary to call this method, since the Go methods all return
 // with errors themselves.
 func (env *Environment) Error() error {
 	return sp_error(env.Pointer)
@@ -190,31 +199,36 @@ func (env *Environment) Error() error {
 // Open opens the database with the given access permissions in the given directory.
 func Open(access Access, directory string) (*Database, error) {
 	env, err := NewEnvironment()
-	if nil!=err {
+	if nil != err {
 		return nil, err
 	}
-	defer env.Close()
+	// defer env.Close()
 
 	err = env.Dir(access, directory)
-	if nil!=err {
+	if nil != err {
 		return nil, err
 	}
-	return env.Open()
+	db, err := env.Open()
+	if nil != err {
+		return nil, err
+	}
+	db.env = env
+	return db, nil
 }
 
 // Open() opens the database that has been configured in the Environment.
 // At a minimum, it should be necessary to call Dir() on the Environment to
 // specify the directory for the database.
-func (env *Environment) Open() (*Database,error) {
-	db := &Database {}
+func (env *Environment) Open() (*Database, error) {
+	db := &Database{}
 	db.Pointer = C.sp_open(env.Pointer)
-	if nil==db.Pointer {
+	if nil == db.Pointer {
 		return nil, env.Error()
 	}
 	return db, nil
 }
 
-// Close closes the enviroment and frees its associated memory. You must call 
+// Close closes the enviroment and frees its associated memory. You must call
 // Close on any Environment created with NewEnvironment.
 func (env *Environment) Close() error {
 	return sp_close(&env.Pointer)
@@ -223,7 +237,14 @@ func (env *Environment) Close() error {
 // Close closes the database and frees its associated memory. You must
 // call Close on any database opened with Open()
 func (db *Database) Close() error {
-	return sp_close(&db.Pointer)
+	err := sp_close(&db.Pointer)
+	if nil != err {
+		return err
+	}
+	if nil != db.env {
+		return db.env.Close()
+	}
+	return nil
 }
 
 // Error returns any error on the database. It should not be
@@ -236,7 +257,7 @@ func (db *Database) Error() error {
 // Set sets the value of the key.
 func (db *Database) Set(key, value []byte) error {
 	e := C.sp_set(db.Pointer, unsafe.Pointer(&key[0]), C.size_t(len(key)), unsafe.Pointer(&value[0]), C.size_t(len(value)))
-	if 0!=e {
+	if 0 != e {
 		return db.Error()
 	}
 	return nil
@@ -253,7 +274,7 @@ func (db *Database) SetObject(key []byte, value interface{}) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(value)
-	if nil!=err {
+	if nil != err {
 		return err
 	}
 	return db.Set(key, buf.Bytes())
@@ -279,10 +300,26 @@ func (db *Database) Has(key []byte) (bool, error) {
 	return false, fmt.Errorf("ERROR: unexpected return value from sp_get: %v", e)
 }
 
+// MustHas returns true if the key exists, false otherwise. It panics
+// in the even of error.
+func (db *Database) MustHas(key []byte) bool {
+	has, err := db.Has(key)
+	if nil != err {
+		panic(err)
+	}
+	return has
+}
+
 // HasString returns true if the database has a value for the key. It is a convenience
 // function for working with strings rather than byte slices.
 func (db *Database) HasString(key string) (bool, error) {
 	return db.Has([]byte(key))
+}
+
+// MustHasString returns true if the string exists, or false if it does not. It panics
+// in the event of error.
+func (db *Database) MustHasString(key string) bool {
+	return db.MustHas([]byte(key))
 }
 
 // Get retrieves the value for the key.
@@ -311,7 +348,7 @@ func (db *Database) Get(key []byte) ([]byte, error) {
 // MustGet returns the value of the key, or panics on an error.
 func (db *Database) MustGet(key []byte) []byte {
 	val, err := db.Get(key)
-	if nil!=err {
+	if nil != err {
 		panic(err)
 	}
 	return val
@@ -320,14 +357,14 @@ func (db *Database) MustGet(key []byte) []byte {
 // GetObject retrieves a gob encoded object into the out object.
 func (db *Database) GetObject(key []byte, out interface{}) error {
 	buf, err := db.Get(key)
-	if nil!=err {
+	if nil != err {
 		return err
 	}
 	dec := gob.NewDecoder(bytes.NewReader(buf))
 	return dec.Decode(out)
 }
 
-// GetObjectString retrieves a gob encoded object into the out object. It is a 
+// GetObjectString retrieves a gob encoded object into the out object. It is a
 // convenience method to facilitate working with string keys.
 func (db *Database) GetObjectString(key string, out interface{}) error {
 	return db.GetObject([]byte(key), out)
@@ -337,7 +374,7 @@ func (db *Database) GetObjectString(key string, out interface{}) error {
 // for working with strings rather than byte slices.
 func (db *Database) GetString(key string) (string, error) {
 	v, err := db.Get([]byte(key))
-	if nil!=err {
+	if nil != err {
 		return "", err
 	}
 	return string(v), nil
@@ -347,7 +384,7 @@ func (db *Database) GetString(key string) (string, error) {
 // on an error.
 func (db *Database) MustGetString(key string) string {
 	value, err := db.Get([]byte(key))
-	if nil!=err {
+	if nil != err {
 		panic(err)
 	}
 	return string(value)
@@ -376,12 +413,12 @@ func (db *Database) DeleteString(key string) error {
 // Iterate over values with Fetch or Next methods.
 func (db *Database) Cursor(order Order, key []byte) (*Cursor, error) {
 	cur := &Cursor{}
-	if nil==key {
+	if nil == key {
 		cur.Pointer = C.sp_cursor(db.Pointer, C.sporder(order), unsafe.Pointer(nil), C.size_t(0))
 	} else {
 		cur.Pointer = C.sp_cursor(db.Pointer, C.sporder(order), unsafe.Pointer(&key[0]), C.size_t(len(key)))
 	}
-	if nil==cur.Pointer {
+	if nil == cur.Pointer {
 		return nil, db.Error()
 	}
 	return cur, nil
@@ -392,7 +429,7 @@ func (db *Database) Cursor(order Order, key []byte) (*Cursor, error) {
 func (db *Database) Each(order Order, key []byte, each func(key []byte, value []byte)) error {
 	cur, err := db.Cursor(order, key)
 	defer cur.Close()
-	if nil!=err {
+	if nil != err {
 		return err
 	}
 	for cur.Fetch() {
@@ -418,13 +455,13 @@ func (cur *Cursor) Close() error {
 // true if there is a next row, false if the cursor has reached the
 // end of the rows.
 func (cur *Cursor) Fetch() bool {
-	return C.int(1)==C.sp_fetch(cur.Pointer)
+	return C.int(1) == C.sp_fetch(cur.Pointer)
 }
 
 // Next is identical to Fetch. It exists because it
 // seems that Next() is more go-idiomatic.
 func (cur *Cursor) Next() bool {
-	return C.int(1)==C.sp_fetch(cur.Pointer)
+	return C.int(1) == C.sp_fetch(cur.Pointer)
 }
 
 // KeySize returns the size of the current key.
@@ -432,7 +469,7 @@ func (cur *Cursor) KeySize() int {
 	return int(C.sp_keysize(cur.Pointer))
 }
 
-// KeyLen returns the length of the current key. It is 
+// KeyLen returns the length of the current key. It is
 // a synonym for KeySize()
 func (cur *Cursor) KeyLen() int {
 	return cur.KeySize()
@@ -452,7 +489,8 @@ func (cur *Cursor) ValueLen() int {
 // Key returns the current key of the cursor.
 func (cur *Cursor) Key() []byte {
 	size := C.int(C.sp_keysize(cur.Pointer))
-	if 0==size {
+	if 0 == size {
+		fmt.Println("Key is 0 len")
 		return nil
 	}
 	return C.GoBytes(unsafe.Pointer(C.sp_key(cur.Pointer)), size)
@@ -466,7 +504,8 @@ func (cur *Cursor) KeyString() string {
 // Value returns the current value of the cursor.
 func (cur *Cursor) Value() []byte {
 	size := C.int(C.sp_valuesize(cur.Pointer))
-	if 0==size {
+	if 0 == size {
+		fmt.Println("Value is 0 len")
 		return nil
 	}
 	return C.GoBytes(unsafe.Pointer(C.sp_value(cur.Pointer)), size)
@@ -481,26 +520,25 @@ func (cur *Cursor) ValueString() string {
 // current value at the cursor.
 func (cur *Cursor) Object(out interface{}) error {
 	buf := cur.Value()
-	if nil==buf {
+	if nil == buf {
 		return errors.New("Value is nil")
 	}
 	dec := gob.NewDecoder(bytes.NewReader(buf))
 	return dec.Decode(out)
 }
 
-
 //export go_sp_comparator
 func go_sp_comparator(aptr unsafe.Pointer, asz C.size_t, bptr unsafe.Pointer, bsz C.size_t, arg unsafe.Pointer) C.int {
 	a := C.GoBytes(aptr, C.int(asz))
 	b := C.GoBytes(bptr, C.int(bsz))
 	cmp := (*Comparator)(arg)
-	return C.int((*cmp)(a,b))
+	return C.int((*cmp)(a, b))
 }
 
 // sp_close closes the pointer and sets it to nil
 // to ensure it cannot be closed twice.
 func sp_close(p *unsafe.Pointer) error {
-	if nil==*p {
+	if nil == *p {
 		return nil
 	}
 	if 0 != C.sp_destroy(*p) {
@@ -510,11 +548,11 @@ func sp_close(p *unsafe.Pointer) error {
 	return nil
 }
 
-// sp_error returns the error for the given 
+// sp_error returns the error for the given
 // Sophia pointer as a golang error
 func sp_error(p unsafe.Pointer) error {
 	cerror := C.sp_error(p)
-	if nil==cerror {
+	if nil == cerror {
 		return nil
 	}
 	return errors.New(C.GoString(cerror))

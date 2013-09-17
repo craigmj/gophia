@@ -19,32 +19,11 @@ Once Sophia is installed, Gophia can be installed with `go get github.com/craigm
 Usage
 =====
 
-Create an Environment:
-
-    env, err := gophia.NewEnvironment()
-    // check for errors
-    defer env.Close()
-
-Set the database access type and directory:
-
-	err = env.Dir(gophia.ReadWrite | gophia.Create, "testdb")
-	// check for errors
-
 Open the database:
-
-    db, err := env.Open()
-    // check for errors
-    defer db.Close()
-
-All of the above steps can be wrapped into:
 
     db, err := gophia.Open(gophia.ReadWrite | gophia.Create, "testdb")
     // check for errors
     defer db.Close()
-
-CAUTION: When using the shorthand gophia.Open(), the database's environment is destroyed after the
-database is opened. At this point, I'm unsure whether this might make Sophia unstable. If it does,
-we'll do a sensible workaround. For now, use this form with a little caution.
 
 You're ready to go:
 
@@ -69,4 +48,23 @@ Of course it's easy to delete a key-value:
 
 See the documentation for more.
 
+Important
+=========
+
+When a Cursor is open, no other access to the database is possible: a Cursor locks the entire db, even from other Cursors.
+
+Therefore, you cannot do anything (Set, Delete, etc) while processing a Cursor. Also, you cannot Close the database util the Cursor is itself closed. ***NOT CLOSING THE DATABASE CORRUPTS THE DATABASE***
+
+In Gophia, this is simplified because you can always Close a Cursor (or Database or Environment) even if it has been previously Closed. This means that you can use the form:
+
+    cur, _ := db.Cursor(gophia.GET, nil)
+    defer cur.Close()
+    for cur.Fetch() {
+    	// ...
+    }
+    cur.Close()
+
+If for some reason you exit during the loop, your cursor will still Close, and hence the Database as well. If you continue, your Cursor is manually closed.
+
+Gophia also offers the Database.Each method, which iterates over the key-value pairs passing each to a given function. Each takes care of closing the Cursor when it returns.
 

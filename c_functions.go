@@ -40,4 +40,3 @@ int sp_ctl_mergewm(void *p, uint32_t watermark) {
 
 */
 import "C"
-
