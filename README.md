@@ -73,11 +73,15 @@ If for some reason you exit during the loop, your cursor will still Close, and h
 
 Gophia also offers the Database.Each method, which iterates over the key-value pairs passing each to a given function. Each takes care of closing the Cursor when it returns.
 
-***MOST IMPORTANTLY*** attempting to change the database while in a Cursor loop will hang the program. ***DO NOT DO THIS:***
+You cannot mutate the database while a Cursor is open. The Delete call in this method will throw an error.
 
     cur, _ := db.Cursor(gophia.GTE, nil)
     defer cur.Close()
     for cur.Fetch() {
-    	db.Delete(cur.Key())
+    	err := db.Delete(cur.Key())
+    	// err will not be nil here - you are trying to change the 
+    	// database while a cursor is open
     }
     cur.Close()
+
+If you don't get this behaviour, please update your Sophia installation (in an old Sophia version, this scenario caused the program to hang).
