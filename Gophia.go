@@ -252,7 +252,7 @@ func (db *Database) SetString(key, value string) error {
 func (db *Database) SetObject(key []byte, value interface{}) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(&buf)
+	err := enc.Encode(value)
 	if nil!=err {
 		return err
 	}
