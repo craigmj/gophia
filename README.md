@@ -16,6 +16,10 @@ The makefiles don't include an 'install', so you will need to manually install s
 
 Once Sophia is installed, Gophia can be installed with `go get github.com/craigmj/gophia`
 
+Very Important
+==============
+Sophia does not currently appear to support multi-threading. I'm not totally sure what is meant by this, but it seems to be that deep trouble will occur if using Gophia from multiple goroutings where GOMAXPROCS > 1. We're currently investigating, and might introduce some synchronizing into Gophia to handle multi-threading. For now, assume you will need to implement your own synchronization in multi-threaded situations.
+
 Usage
 =====
 
@@ -27,24 +31,25 @@ Open the database:
 
 You're ready to go:
 
-	db.SetString("one","ichi")
-	db.SetString("two","nichi")
+	// SetSS sets a string key to a string value.
+	db.SetSS("one","ichi")
+	db.SetSS("two","nichi")
 
-	fmt.Println("one is ", db.MustGetString("one"))
-	fmt.Println("two is ", db.MustGetString("two"))
+	fmt.Println("one is ", db.MustGetSS("one"))
+	fmt.Println("two is ", db.MustGetSS("two"))
 
 You can also use a cursor:
 
 	// Without a starting key, every key-value will be returned
 	cur, err := db.Cursor(gophia.GTE, nil)
 	for cur.Fetch() {
-		fmt.Println(cur.KeyString(), "=", cur.ValueString())
+		fmt.Println(cur.KeyS(), "=", cur.ValueS())
 	}
 	cur.Close()
 
 Of course it's easy to delete a key-value:
 
-	db.DeleteString("one")
+	db.DeleteS("one")
 
 See the documentation for more.
 

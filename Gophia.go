@@ -263,27 +263,54 @@ func (db *Database) Set(key, value []byte) error {
 	return nil
 }
 
-// SetString sets the value of the key. It is a convenience function for working with strings
-// rather than byte slices.
-func (db *Database) SetString(key, value string) error {
-	return db.Set([]byte(key), []byte(value))
+// SetSA sets a string key to a byte array value
+func (db *Database) SetSA(key string, value []byte) error {
+	return db.Set([]byte(key), value)
+}
+// SetSS sets a string key to a string value
+func (db *Database) SetSS(key, value string) error {
+	return db.Set([]byte(key),[]byte(value))
 }
 
-// SetObject will gob encode the object and store it with the key
-func (db *Database) SetObject(key []byte, value interface{}) error {
+// SetAO sets a byte array key to an object value.
+func (db *Database) SetAO(key []byte, value interface{}) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(value)
-	if nil != err {
+	if nil!=err {
 		return err
 	}
 	return db.Set(key, buf.Bytes())
 }
 
+// SetSO sets a string key to an object value.
+func (db *Database) SetSO(key string, value interface{}) error {
+	return db.SetAO([]byte(key), value)
+}
+
+// SetString sets the byte-slice value of the string key. It is a convenience function for working with string keys
+// rather than byte slices.
+// @deprecated Use SetSA instead
+func (db *Database) SetString(key string, value []byte) error {
+	return db.SetSA(key, value)
+}
+// SetStrings sets the value of the key. It is a convenience function for working with strings
+// rather than byte slices.
+// @deprecated Use SetSS instead
+func (db *Database) SetStrings(key, value string) error {
+	return db.SetSS(key, value)
+}
+
+// SetObject will gob encode the object and store it with the key.
+// @deprecated Use SetAO instead
+func (db *Database) SetObject(key []byte, value interface{}) error {
+	return db.SetAO(key, value)
+}
+
 // SetObjectString will gob encode the object and store it with the key. This
 // is a convenience method to facilitate working with string keys.
 func (db *Database) SetObjectString(key string, value interface{}) error {
-	return db.SetObject([]byte(key), value)
+	return db.SetSO(key, value)
 }
 
 // Has returns true if the database has a value for the key.
@@ -310,6 +337,10 @@ func (db *Database) MustHas(key []byte) bool {
 	return has
 }
 
+// HasS returns true if the database has a value for the string key.
+func (db *Database) HasS(key string) (bool, error) {
+	return db.Has([]byte(key))
+}
 // HasString returns true if the database has a value for the key. It is a convenience
 // function for working with strings rather than byte slices.
 func (db *Database) HasString(key string) (bool, error) {
@@ -354,8 +385,8 @@ func (db *Database) MustGet(key []byte) []byte {
 	return val
 }
 
-// GetObject retrieves a gob encoded object into the out object.
-func (db *Database) GetObject(key []byte, out interface{}) error {
+// GetAO returns on object value for a byte-array key.
+func (db *Database) GetAO(key []byte, out interface{}) error {
 	buf, err := db.Get(key)
 	if nil != err {
 		return err
@@ -364,30 +395,80 @@ func (db *Database) GetObject(key []byte, out interface{}) error {
 	return dec.Decode(out)
 }
 
-// GetObjectString retrieves a gob encoded object into the out object. It is a
-// convenience method to facilitate working with string keys.
-func (db *Database) GetObjectString(key string, out interface{}) error {
-	return db.GetObject([]byte(key), out)
+// GetObject fetches a gob encoded object into the out object.
+// @deprecated Use GetAO instead.
+func (db *Database) GetObject(key []byte, out interface{}) error {
+	return db.GetAO(key, out)
 }
 
-// GetString retrieves the string value for the string key. It is a convenience function
-// for working with strings rather than byte slices.
-func (db *Database) GetString(key string) (string, error) {
+// GetSO fetches a gob encoded object for a string key.
+func (db *Database) GetSO(key string, out interface{}) error {
+	return db.GetAO([]byte(key), out)
+}
+// GetObjectString retrieves a gob encoded object into the out object. It is a
+// convenience method to facilitate working with string keys.
+// @deprecated Use GetSO instead.
+func (db *Database) GetObjectString(key string, out interface{}) error {
+	return db.GetSO(key, out)
+}
+
+// GetS retrieves an array value for a string key. It is a convenience
+// method to simplify working with string keys.
+func (db *Database) GetSA(key string) ([]byte, error) {
+	return db.Get([]byte(key))
+}
+
+// GetString returns a byte array value for a string key.
+// @deprecated Use GetS instead.
+func (db *Database) GetString(key string) ([]byte, error) {
+	return db.GetSA(key)
+}
+
+// GetSS returns a string value for a string key.
+func (db *Database) GetSS(key string) (string, error) {
 	v, err := db.Get([]byte(key))
 	if nil != err {
 		return "", err
 	}
 	return string(v), nil
 }
+// GetString retrieves the string value for the string key. It is a convenience function
+// for working with strings rather than byte slices.
+// @deprecated Use GetSS instead.
+func (db *Database) GetStrings(key string) (string, error) {
+	return db.GetSS(key)
+}
 
-// MustGetString returns the stirng value for a string key. It panics
+// MustGetSA returns the byte array value for the string key. It panics on 
+// error.
+func (db *Database) MustGetSA(key string) []byte {
+	value, err := db.Get([]byte(key))
+	if nil != err {
+		panic(err)
+	}
+	return value
+}
+// MustGetString returns the byte array value for the string key. It panics
+// on error.
+// @deprecated Use MustGetSA instead.
+func (db *Database) MustGetString(key string) []byte {
+	return db.MustGetSA(key)
+}
+
+// MustGetSS returns the string value for a string key. It panics
 // on an error.
-func (db *Database) MustGetString(key string) string {
+func (db *Database) MustGetSS(key string) string {
 	value, err := db.Get([]byte(key))
 	if nil != err {
 		panic(err)
 	}
 	return string(value)
+}
+
+// MustGetStrings returns the string value for a string key. It panics on error.
+// @deprecated Use MustGetSS instead.
+func (db *Database) MustGetStrings(key string) string {
+	return db.MustGetSS(key)
 }
 
 // Delete deletes the key from the database.
@@ -398,9 +479,14 @@ func (db *Database) Delete(key []byte) error {
 	return nil
 }
 
-// DeleteString deletes the key from the database.
-func (db *Database) DeleteString(key string) error {
+// DeleteS deletes the key from the database.
+func (db *Database) DeleteS(key string) error {	
 	return db.Delete([]byte(key))
+}
+// DeleteString deletes the key from the database.
+// @deprecated Use DeleteS instead.
+func (db *Database) DeleteString(key string) error {
+	return db.DeleteS(key)
 }
 
 // Cursor returns a Cursor for iterating over rows in the database.
@@ -438,9 +524,16 @@ func (db *Database) Each(order Order, key []byte, each func(key []byte, value []
 	return nil
 }
 
+// CursorS returns a Cursor that fetches rows from the database
+// from the given key, passed as a string.
+// Callers must call Close() on the received Cursor.
+func (db *Database) CursorS(order Order, key string) (*Cursor, error) {
+	return db.Cursor(order, []byte(key))
+}
 // CursorString returns a Cursor that fetches rows from the database
 // from the given key, passed as a string.
 // Callers must call Close() on the received Cursor.
+// @deprecated Use CursorS instead.
 func (db *Database) CursorString(order Order, key string) (*Cursor, error) {
 	return db.Cursor(order, []byte(key))
 }
@@ -497,7 +590,13 @@ func (cur *Cursor) Key() []byte {
 }
 
 // KeyString returns the current key as a string.
+// @deprecated Use KeyS instead
 func (cur *Cursor) KeyString() string {
+	return string(cur.Key())
+}
+
+// KeyS returns the current key as a string.
+func (cur *Cursor) KeyS() string {
 	return string(cur.Key())
 }
 
@@ -511,14 +610,32 @@ func (cur *Cursor) Value() []byte {
 	return C.GoBytes(unsafe.Pointer(C.sp_value(cur.Pointer)), size)
 }
 
+// ValueS returns the current value as a string.
+func (cur *Cursor) ValueS() string {
+	return string(cur.Value())
+}
+
 // ValueString returns the current value as a string.
+// @deprecated Use ValueS instead
 func (cur *Cursor) ValueString() string {
 	return string(cur.Value())
 }
 
 // ValueObject returns the current object, by gob decoding the
 // current value at the cursor.
+// @deprecated Use ValueO instead.
 func (cur *Cursor) Object(out interface{}) error {
+	buf := cur.Value()
+	if nil == buf {
+		return errors.New("Value is nil")
+	}
+	dec := gob.NewDecoder(bytes.NewReader(buf))
+	return dec.Decode(out)
+}
+
+// ValueO returns the current value as an object, by gob decoding
+// the current value at the cursor.
+func (cur *Cursor) ValueO(out interface{}) error {
 	buf := cur.Value()
 	if nil == buf {
 		return errors.New("Value is nil")
