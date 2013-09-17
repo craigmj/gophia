@@ -57,7 +57,7 @@ Therefore, you cannot do anything (Set, Delete, etc) while processing a Cursor. 
 
 In Gophia, this is simplified because you can always Close a Cursor (or Database or Environment) even if it has been previously Closed. This means that you can use the form:
 
-    cur, _ := db.Cursor(gophia.GET, nil)
+    cur, _ := db.Cursor(gophia.GTE, nil)
     defer cur.Close()
     for cur.Fetch() {
     	// ...
@@ -68,3 +68,11 @@ If for some reason you exit during the loop, your cursor will still Close, and h
 
 Gophia also offers the Database.Each method, which iterates over the key-value pairs passing each to a given function. Each takes care of closing the Cursor when it returns.
 
+***MOST IMPORTANTLY*** attempting to change the database while in a Cursor loop will hang the program. ***DO NOT DO THIS:***
+
+    cur, _ := db.Cursor(gophia.GTE, nil)
+    defer cur.Close()
+    for cur.Fetch() {
+    	db.Delete(cur.Key())
+    }
+    cur.Close()
