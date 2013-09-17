@@ -49,6 +49,12 @@ func (db *Database) HasString(key string) (bool, error) {
 	return db.Has([]byte(key))
 }
 
+// KeyString returns the current key as a string.
+// @deprecated Use KeyS instead
+func (cur *Cursor) KeyString() string {
+	return string(cur.Key())
+}
+
 // MustGetStrings returns the string value for a string key. It panics on error.
 // @deprecated Use MustGetSS instead.
 func (db *Database) MustGetStrings(key string) string {
@@ -81,6 +87,7 @@ func (db *Database) SetObjectString(key string, value interface{}) error {
 func (db *Database) SetString(key string, value []byte) error {
 	return db.SetSA(key, value)
 }
+
 // SetStrings sets the value of the key. It is a convenience function for working with strings
 // rather than byte slices.
 // @deprecated Use SetSS instead
